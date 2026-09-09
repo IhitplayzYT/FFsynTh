@@ -5,7 +5,34 @@ use crate::model::Model::MyColor;
 
 
 
-    const DBG_STR: &str = "";
+    const DBG_STR: &str = r#"
+FFsynTh - TUI Audio Spectrum Visualizer
+
+USAGE:
+    ffsynth [OPTIONS]
+
+OPTIONS:
+    -h, --help              Show this help message and exit
+    -d, --debug             Enable debug mode (print CLI arguments)
+    -n, --n_bars=<NUM>      Set number of bars in visualization (default: 5)
+    -amp, --amplification=<NUM>  Set amplification factor (default: 1.0)
+    -src, --src_audio=<PATH>    Set audio source device (default: pipewire)
+    -c, --color=<R,G,B,A>   Add a color for gradient (format: R,G,B or R,G,B,A)
+                            Example: -c=255,0,0 or -c=0,255,0,128
+
+EXAMPLES:
+    ffsynth                              # Run with default settings
+    ffsynth -d -n=20                     # Debug mode with 20 bars
+    ffsynth -c=255,0,0 -c=0,0,255       # Red to blue gradient
+    ffsynth -amp=1.5 -n=30              # Higher amplification with 30 bars
+    ffsynth -src=default                # Use default audio device
+
+NOTES:
+    - Colors are specified as RGB or RGBA values (0-255)
+    - If 1 color is provided, it fades to transparent
+    - If 2+ colors are provided, they create a gradient
+    - The visualizer automatically interpolates between colors
+"#;
     const OK:i32 = 0;
     const ERR:i32 = -1;
 

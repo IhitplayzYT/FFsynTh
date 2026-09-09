@@ -72,7 +72,7 @@ pub mod Model{
   } 
 
   fn midpoint(c1: MyColor,c2: MyColor) -> MyColor{
-    MyColor { r: ((c1.r as u16 + c2.r as u16) / 255) as u8, g: ((c1.g as u16 + c2.g as u16) / 255) as u8, b: ((c1.b as u16 + c2.b as u16) / 255) as u8, a: ((c1.a as u16 + c2.a as u16) / 255) as u8}
+    MyColor { r: ((c1.r as u16 + c2.r as u16) / 2) as u8, g: ((c1.g as u16 + c2.g as u16) / 2) as u8, b: ((c1.b as u16 + c2.b as u16) / 2) as u8, a: ((c1.a as u16 + c2.a as u16) / 2) as u8}
   }
 
 
