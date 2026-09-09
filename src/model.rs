@@ -46,6 +46,35 @@ pub mod Model{
   }
 
 
+  pub fn expand_to_len(mut colors: Vec<MyColor>, target_len: usize) -> Vec<MyColor> {
+    if colors.len() >= target_len {
+        colors.truncate(target_len);
+        return colors;
+    }
+
+    while colors.len() < target_len {
+        let old_len = colors.len();
+
+        let mut result = Vec::with_capacity(
+            target_len.min(old_len * 2 - 1)
+        );
+
+        for i in 0..old_len - 1 {
+            result.push(colors[i]);
+            result.push(midpoint(colors[i], colors[i + 1]));
+        }
+        result.push(colors[old_len - 1]);
+        colors = result;
+    }
+
+    colors.truncate(target_len);
+    colors
+  } 
+
+  fn midpoint(c1: MyColor,c2: MyColor) -> MyColor{
+    MyColor { r: ((c1.r as u16 + c2.r as u16) / 255) as u8, g: ((c1.g as u16 + c2.g as u16) / 255) as u8, b: ((c1.b as u16 + c2.b as u16) / 255) as u8, a: ((c1.a as u16 + c2.a as u16) / 255) as u8}
+  }
+
 
 
 

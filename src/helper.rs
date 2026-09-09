@@ -32,8 +32,12 @@ use crate::model::Model::MyColor;
         }
 
         pub fn Parse_Args(&mut self){
-            let args: Vec<String> = std::env::args().skip(1).collect();
-           for i in &args{
+
+            let mut args: Vec<String> = std::env::args().collect();
+            if args.len() > 0{
+                args = args[1..].to_vec();
+            }
+            for i in &args{
                 if i == "-d" || i == "--debug" || i == " --DEBUG" || i == "-D"{
                     self.dbg = true;
                 } else if i == "-h" || i == "--help" || i == " --HELP" || i == "-H"{
@@ -44,13 +48,12 @@ use crate::model::Model::MyColor;
                     self.amp = i[i.find("=").unwrap()+1..].parse().expect("Bar Count is an Unsigned Int");
                 } else if i.starts_with("-src=") || i.starts_with("--src_audio="){
                     self.src = Some(i[i.find("=").unwrap()+1..].to_string());
+                } else if i.starts_with("--color=") || i.starts_with("-c="){
+                    self.colors.push(MyColor::from(&i[i.find("=").unwrap()+1..]));
                 } else{
-                    // TODO: Add coilormap parsing
                     Help();
                 }
-           } 
-
-
+            } 
         }
 
 

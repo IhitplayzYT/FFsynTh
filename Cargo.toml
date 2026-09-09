@@ -7,3 +7,5 @@ license = "GPL-3.0-only"
 license-file = "LICENSE"
 
 [dependencies]
+cpal = "0.16"
+rustfft = "6"
