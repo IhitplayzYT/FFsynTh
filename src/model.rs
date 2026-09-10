@@ -1,5 +1,7 @@
 pub mod Model{
-    use crate::model::Model::CaptureSource::NamedDevice;
+    use ringbuf::traits::Consumer;
+
+use crate::model::Model::CaptureSource::NamedDevice;
 
 
     #[derive(Debug,Clone, Copy)]
@@ -93,6 +95,9 @@ impl From<&str> for CaptureSource{
             _ => {CaptureSource::NamedDevice(value.to_string())},
         }
     }
+}
+
+pub enum ChannelBuff{
 }
 
 

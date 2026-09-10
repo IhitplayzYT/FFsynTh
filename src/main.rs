@@ -1,13 +1,13 @@
-use std::{any::Any, error::Error, time::Duration};
+use std::{error::Error, time::Duration};
 
-use crate::{fft::FFT::process_audio, helper::Helper::CLI, model::Model::{CaptureSource, MyColor, expand_to_len}};
-use cpal::{FromSample, Stream, StreamConfig, traits::{DeviceTrait, HostTrait, StreamTrait}};
+use crate::{fft::FFT::{process_mono_audio, process_stereo_audio}, helper::Helper::CLI, model::Model::{CaptureSource, MyColor, expand_to_len}};
+use cpal::{traits::{DeviceTrait, HostTrait, StreamTrait}};
 use ringbuf::{HeapRb, traits::{Producer, Split}};
 mod helper;
 mod model;
 mod fft;
 mod render;
-const FRAME_SIZE:usize = 1024;
+pub const FRAME_SIZE:usize = 1024;
 
 fn main() -> Result<(), Box<dyn Error>>{
     let mut clargs = CLI::new();
@@ -38,6 +38,11 @@ fn main() -> Result<(), Box<dyn Error>>{
     let mut channels = 2;
     let mut RING_BUFF_SZ = sample_rate as usize * 2;
     let mut proc_buff = HeapRb::<f32>::new(RING_BUFF_SZ); // Store 2secs of intervieved L R frames
+
+    let (mut Lbuff,mut Rbuff) = (HeapRb::<f32>::new(RING_BUFF_SZ/2),HeapRb::<f32>::new(RING_BUFF_SZ/2));
+    let (mut lprod,mut lcons) = Lbuff.split();
+    let (mut rprod,mut rcons) = Rbuff.split();
+
     let (mut prod,mut cons) = proc_buff.split();
     match src{
     CaptureSource::DefaultInput => {
@@ -51,8 +56,12 @@ fn main() -> Result<(), Box<dyn Error>>{
                 channels = conf.channels;
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
-                        for &i in data{
-                            let _ = prod.try_push(i);
+                        for (idx,v) in data.iter().enumerate(){
+                            if idx & 1 == 0{
+                                let _ = lprod.try_push(*v);
+                            }else{
+                                let _ = rprod.try_push(*v);
+                            }
                         }
                     } else{
                         for i in data.chunks_exact(2){
@@ -76,8 +85,12 @@ fn main() -> Result<(), Box<dyn Error>>{
                 channels = conf.channels;
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
-                        for &i in data{
-                            let _ = prod.try_push(i);
+                        for (idx,v) in data.iter().enumerate(){
+                            if idx & 1 == 0{
+                                let _ = lprod.try_push(*v);
+                            }else{
+                                let _ = rprod.try_push(*v);
+                            }
                         }
                     } else{
                         for i in data.chunks_exact(2){
@@ -100,8 +113,12 @@ fn main() -> Result<(), Box<dyn Error>>{
                 channels = conf.channels;
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
-                        for &i in data{
-                            let _ = prod.try_push(i);
+                        for (idx,v) in data.iter().enumerate(){
+                            if idx & 1 == 0{
+                                let _ = lprod.try_push(*v);
+                            }else{
+                                let _ = rprod.try_push(*v);
+                            }
                         }
                     } else{
                         for i in data.chunks_exact(2){
@@ -116,9 +133,11 @@ fn main() -> Result<(), Box<dyn Error>>{
     }
     if let Some(strm) = stream{
         strm.play()?;
-        std::thread::spawn(move ||{
-          process_audio(&mut cons, sample_rate, channels,clargs.stereo);  
-        });
+        if clargs.stereo{
+            std::thread::spawn(move ||{process_stereo_audio(&mut lcons,&mut rcons, sample_rate, channels);});
+        }else{
+            std::thread::spawn(move ||{process_mono_audio(&mut cons,sample_rate, channels);});
+        }
     }else{
         panic!("No valid virtual stream found on host device");
     }
