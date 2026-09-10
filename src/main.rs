@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>>{
         println!("{}",i.name());
     }
     let host = cpal::default_host();
+
     println!("Chosen: {}",host.id().name());
     let mut stream = None;
     println!("Available Input Streams: ");
@@ -48,15 +49,15 @@ fn main() -> Result<(), Box<dyn Error>>{
     match src{
     CaptureSource::DefaultInput => {
         for dev in host.input_devices().unwrap(){       
-            let name = dev.name().unwrap(); 
+            let name = dev.to_string();
             println!("  {}",&name);
-            if matches!(&name[..],"default"){
+            if matches!(&name[..],"Built-in Audio Analog Stereo"){
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
-                sample_rate = conf.sample_rate.0;
+                sample_rate = conf.sample_rate;
                 channels = conf.channels;
                 assert!(channels <= 2);
-                stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
+                stream = Some(dev.build_input_stream(conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
                             if idx & 1 == 0{
@@ -77,16 +78,16 @@ fn main() -> Result<(), Box<dyn Error>>{
     },
     CaptureSource::PipeWireMonitor => {
         for dev in host.input_devices().unwrap(){        
-            let name = dev.name().unwrap();
+            let name = dev.to_string();
             let lwr = name.to_lowercase();
             println!("  {}",&name);
             if lwr.contains("monitor") && lwr.contains("pipewire") && lwr.contains("output"){
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
-                sample_rate = conf.sample_rate.0;
+                sample_rate = conf.sample_rate;
                 channels = conf.channels;
                 assert!(channels <= 2);
-                stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
+                stream = Some(dev.build_input_stream(conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
                             if idx & 1 == 0{
@@ -107,15 +108,15 @@ fn main() -> Result<(), Box<dyn Error>>{
     },
     CaptureSource::NamedDevice(s) => {
         for dev in host.input_devices().unwrap(){        
-            let name = dev.name().unwrap();
+            let name = dev.to_string();
             println!("  {}",&name);
             if &name[..] == &s[..]{
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
-                sample_rate = conf.sample_rate.0;
+                sample_rate = conf.sample_rate;
                 channels = conf.channels;
                 assert!(channels <= 2);
-                stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
+                stream = Some(dev.build_input_stream(conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
                             if idx & 1 == 0{

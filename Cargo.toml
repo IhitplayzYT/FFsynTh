@@ -7,6 +7,6 @@ license = "GPL-3.0-only"
 license-file = "LICENSE"
 
 [dependencies]
-cpal = "0.16"
+cpal = { version = "0.18", features = ["pipewire"] }
 rustfft = "6"
 ringbuf = "0.4"

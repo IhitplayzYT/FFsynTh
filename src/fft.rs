@@ -48,6 +48,7 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
 
                 // PROCESS
                 let r_mag = r_fft_buff[..FRAME_SIZE/2].iter().map(|x| x.norm()).collect::<Vec<f32>>();       
+                println!("{} {}",l_mag.iter().any(|x| x != &0.0),r_mag.iter().any(|x| x != &0.0));
             }
         }
         std::thread::sleep(Duration::from_millis(1)); 
