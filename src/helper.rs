@@ -43,7 +43,8 @@ NOTES:
         pub bars: usize,
         pub src: Option<String>,
         pub amp: f64,
-        pub colors: Vec<MyColor>
+        pub colors: Vec<MyColor>,
+        pub stereo: bool
     }
 
 
@@ -55,7 +56,7 @@ NOTES:
 
     impl CLI{
         pub fn new() -> Self{
-            Self {dbg: false,bars: 5,src:None,amp:1.0,colors:vec![]}
+            Self {dbg: false,bars: 5,src:None,amp:1.0,colors:vec![],stereo: true}
         }
 
         pub fn Parse_Args(&mut self){
@@ -77,6 +78,10 @@ NOTES:
                     self.src = Some(i[i.find("=").unwrap()+1..].to_string());
                 } else if i.starts_with("--color=") || i.starts_with("-c="){
                     self.colors.push(MyColor::from(&i[i.find("=").unwrap()+1..]));
+                } else if i == "--mono" || i == "-m"{
+                    self.stereo = false;
+                } else if i == "--stereo" || i == "-s"{
+                    self.stereo = true;
                 } else{
                     Help();
                 }

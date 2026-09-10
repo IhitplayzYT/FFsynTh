@@ -1,4 +1,6 @@
 pub mod Model{
+    use crate::model::Model::CaptureSource::NamedDevice;
+
 
     #[derive(Debug,Clone, Copy)]
   pub struct MyColor{
@@ -77,7 +79,21 @@ pub mod Model{
 
 
 
+pub enum CaptureSource {
+    DefaultInput,
+    PipeWireMonitor,
+    NamedDevice(String),
+}
 
+impl From<&str> for CaptureSource{
+    fn from(value: &str) -> Self {
+        match value{
+            "Default" => {CaptureSource::DefaultInput},
+            "Pipewire" => {CaptureSource::PipeWireMonitor},
+            _ => {CaptureSource::NamedDevice(value.to_string())},
+        }
+    }
+}
 
 
 
