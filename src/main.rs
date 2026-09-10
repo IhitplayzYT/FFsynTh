@@ -2,7 +2,7 @@ use std::{error::Error, time::Duration};
 
 use crate::{fft::FFT::{process_mono_audio, process_stereo_audio}, helper::Helper::CLI, model::Model::{CaptureSource, MyColor, expand_to_len}};
 use cpal::{traits::{DeviceTrait, HostTrait, StreamTrait}};
-use ringbuf::{HeapRb, traits::{Producer, Split}};
+use ringbuf::{HeapRb, traits::{Observer, Producer, Split}};
 mod helper;
 mod model;
 mod fft;
@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>>{
         println!("{}",i.name());
     }
     let host = cpal::default_host();
+    println!("Chosen: {}",host.id().name());
     let mut stream = None;
     println!("Available Input Streams: ");
     let mut sample_rate = 48000_u32;
@@ -48,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>>{
     CaptureSource::DefaultInput => {
         for dev in host.input_devices().unwrap(){       
             let name = dev.name().unwrap(); 
-            println!("{}",&name);
+            println!("  {}",&name);
             if matches!(&name[..],"default"){
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
@@ -78,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>>{
         for dev in host.input_devices().unwrap(){        
             let name = dev.name().unwrap();
             let lwr = name.to_lowercase();
-            println!("{}",&name);
+            println!("  {}",&name);
             if lwr.contains("monitor") && lwr.contains("pipewire") && lwr.contains("output"){
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
@@ -107,7 +108,7 @@ fn main() -> Result<(), Box<dyn Error>>{
     CaptureSource::NamedDevice(s) => {
         for dev in host.input_devices().unwrap(){        
             let name = dev.name().unwrap();
-            println!("{}",&name);
+            println!("  {}",&name);
             if &name[..] == &s[..]{
                 let conf = dev.default_input_config().expect("No config for the input device");
                 let conf: cpal::StreamConfig = conf.clone().into();
@@ -136,10 +137,16 @@ fn main() -> Result<(), Box<dyn Error>>{
     }
     if let Some(strm) = stream{
         strm.play()?;
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        println!("{} {} {}",cons.occupied_len(),lcons.occupied_len(),rcons.occupied_len());
         if clargs.stereo{
             std::thread::spawn(move ||{process_stereo_audio(&mut lcons,&mut rcons, sample_rate, channels);});
         }else{
             std::thread::spawn(move ||{process_mono_audio(&mut cons,sample_rate, channels);});
+        }
+        let mut buff = "".to_string();
+        while std::io::stdin().read_line(&mut buff).expect("Failed") != 0{
+            std::thread::sleep(Duration::from_secs(1));
         }
     }else{
         panic!("No valid virtual stream found on host device");
