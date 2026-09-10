@@ -54,6 +54,7 @@ fn main() -> Result<(), Box<dyn Error>>{
                 let conf: cpal::StreamConfig = conf.clone().into();
                 sample_rate = conf.sample_rate.0;
                 channels = conf.channels;
+                assert!(channels <= 2);
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
@@ -83,6 +84,7 @@ fn main() -> Result<(), Box<dyn Error>>{
                 let conf: cpal::StreamConfig = conf.clone().into();
                 sample_rate = conf.sample_rate.0;
                 channels = conf.channels;
+                assert!(channels <= 2);
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
@@ -111,6 +113,7 @@ fn main() -> Result<(), Box<dyn Error>>{
                 let conf: cpal::StreamConfig = conf.clone().into();
                 sample_rate = conf.sample_rate.0;
                 channels = conf.channels;
+                assert!(channels <= 2);
                 stream = Some(dev.build_input_stream(&conf, move |data:&[f32],_|{
                     if clargs.stereo{
                         for (idx,v) in data.iter().enumerate(){
