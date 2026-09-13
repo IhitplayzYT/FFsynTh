@@ -44,7 +44,8 @@ NOTES:
         pub src: Option<String>,
         pub amp: f64,
         pub colors: Vec<MyColor>,
-        pub stereo: bool
+        pub stereo: bool,
+        pub to_invert: bool,
     }
 
 
@@ -56,11 +57,10 @@ NOTES:
 
     impl CLI{
         pub fn new() -> Self{
-            Self {dbg: false,bars: 5,src:None,amp:1.0,colors:vec![],stereo: true}
+            Self {dbg: false,bars: 5,src:None,amp:1.0,colors:vec![],stereo: true,to_invert:false}
         }
 
         pub fn Parse_Args(&mut self){
-
             let mut args: Vec<String> = std::env::args().collect();
             if args.len() > 0{
                 args = args[1..].to_vec();
@@ -82,6 +82,8 @@ NOTES:
                     self.stereo = false;
                 } else if i == "--stereo" || i == "-s"{
                     self.stereo = true;
+                } else if i == "--invert" || i == "-i"{
+                    self.to_invert = true;
                 } else{
                     Help();
                 }

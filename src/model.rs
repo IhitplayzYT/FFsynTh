@@ -29,6 +29,19 @@ use crate::model::Model::CaptureSource::NamedDevice;
         self.g = u8::MAX - self.g;
         self.b = u8::MAX - self.b;
     }
+
+    pub fn incr_alpha(&mut self){
+        self.a = self.a.saturating_add(25);
+    }
+
+    pub fn decr_alpha(&mut self){
+        self.a = self.a.saturating_sub(25);
+    }
+
+    pub fn Invert(col: &MyColor) -> MyColor{
+       MyColor::new(u8::MAX - col.r, u8::MAX - col.g, u8::MAX - col.b, col.a) 
+    }
+
   }
 
 
@@ -97,8 +110,7 @@ impl From<&str> for CaptureSource{
     }
 }
 
-pub enum ChannelBuff{
-}
+
 
 
 
