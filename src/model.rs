@@ -24,6 +24,10 @@ use crate::model::Model::CaptureSource::NamedDevice;
         Self { r, g, b, a }
     }
 
+    pub fn Rand() -> MyColor{
+        MyColor::new(rand::random(), rand::random(), rand::random(), rand::random())
+    }
+
     pub fn invert(&mut self){
         self.r = u8::MAX - self.r;
         self.g = u8::MAX - self.g;
@@ -87,6 +91,17 @@ use crate::model::Model::CaptureSource::NamedDevice;
     colors.truncate(target_len);
     colors
   } 
+
+    pub fn gen_rand_len(target_len: usize) -> Vec<MyColor> {
+        let mut i = 0;
+        let mut ret = vec![];
+        while i < target_len{
+            ret.push(MyColor::Rand());
+            i += 1;
+        }
+        ret
+    }
+
 
   fn midpoint(c1: MyColor,c2: MyColor) -> MyColor{
     MyColor { r: ((c1.r as u16 + c2.r as u16) / 2) as u8, g: ((c1.g as u16 + c2.g as u16) / 2) as u8, b: ((c1.b as u16 + c2.b as u16) / 2) as u8, a: ((c1.a as u16 + c2.a as u16) / 2) as u8}

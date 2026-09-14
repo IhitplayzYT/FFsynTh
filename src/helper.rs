@@ -46,6 +46,8 @@ NOTES:
         pub colors: Vec<MyColor>,
         pub stereo: bool,
         pub to_invert: bool,
+        pub batch_sz: usize,
+        pub random:bool 
     }
 
 
@@ -57,7 +59,7 @@ NOTES:
 
     impl CLI{
         pub fn new() -> Self{
-            Self {dbg: false,bars: 5,src:None,amp:1.0,colors:vec![],stereo: true,to_invert:false}
+            Self {dbg: false,bars: 5,src:None,amp:0.4,colors:vec![],stereo: true,to_invert:false,batch_sz:64,random:true}
         }
 
         pub fn Parse_Args(&mut self){
@@ -82,8 +84,12 @@ NOTES:
                     self.stereo = false;
                 } else if i == "--stereo" || i == "-s"{
                     self.stereo = true;
+                } else if i == "--rand" || i == "-r"{
+                    self.random = false;
                 } else if i == "--invert" || i == "-i"{
                     self.to_invert = true;
+                } else if i.starts_with("--batch=") || i.starts_with("--batch_sz") || i.starts_with("-b="){
+                    self.batch_sz = i[i.find("=").unwrap()+1..].parse().expect("Batch size is supposed to be unsighned int");
                 } else{
                     Help();
                 }

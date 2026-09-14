@@ -1,6 +1,6 @@
 use std::{cell::LazyCell, error::Error, io::{self, stdout}, sync::{Arc, LazyLock, Mutex, atomic::{AtomicBool, Ordering}}, time::Duration};
 
-use crate::{fft::FFT::{process_mono_audio, process_stereo_audio}, helper::Helper::CLI, model::Model::{MyColor, expand_to_len}, render::render::App};
+use crate::{fft::FFT::{process_mono_audio, process_stereo_audio}, helper::Helper::CLI, model::Model::{MyColor, expand_to_len, gen_rand_len}, render::render::App};
 use cpal::{traits::{DeviceTrait, HostTrait, StreamTrait}};
 use crossterm::{event::{DisableMouseCapture, EnableMouseCapture}, execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode}};
 use ratatui::{Terminal, backend::CrosstermBackend};
@@ -63,13 +63,17 @@ fn main() -> Result<(), Box<dyn Error>>{
         1 => {clargs.colors.push(MyColor::new(255, 0, 0, 0));},
         _ => {}
     }    
+    if clargs.random{
+        clargs.colors = gen_rand_len(clargs.bars);
+    }
+
     if clargs.to_invert{
         clargs.colors = expand_to_len(clargs.colors, clargs.bars).iter().map(|x| MyColor::Invert(x)).collect();
     }else{
         clargs.colors = expand_to_len(clargs.colors, clargs.bars);
     }
 
-    let mut app = App::new(clargs.bars, clargs.amp as f32, clargs.colors, clargs.stereo);
+    let mut app = App::new(clargs.bars, clargs.amp as f32, clargs.colors, clargs.stereo,clargs.random);
     
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -130,15 +134,14 @@ fn main() -> Result<(), Box<dyn Error>>{
         if clargs.stereo{
             let lcons_clone = lcons.clone();
             let rcons_clone = rcons.clone();
-            std::thread::spawn(move || {process_stereo_audio(app_clone, lcons_clone, rcons_clone, sample_rate, channels);});
+            std::thread::spawn(move || {process_stereo_audio(app_clone, lcons_clone, rcons_clone, sample_rate, channels,clargs.batch_sz);});
         }else{
             let cons_clone = cons.clone();
-            std::thread::spawn(move || {process_mono_audio(app_clone, cons_clone, sample_rate, channels);});
+            std::thread::spawn(move || {process_mono_audio(app_clone, cons_clone, sample_rate, channels,clargs.batch_sz);});
         }
         
         strm.play()?;
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        
+        std::thread::sleep(Duration::from_millis(500));
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout,EnterAlternateScreen,EnableMouseCapture)?;
