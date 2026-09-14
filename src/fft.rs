@@ -11,7 +11,6 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
         let fft = planner.plan_fft(FFT_SIZE, rustfft::FftDirection::Forward);
         let mut frame = Vec::<f32>::with_capacity(FRAME_SIZE);
         loop {
-            // BATCHING
             for _ in 0..batch_sz{
                 let s = cons.lock().unwrap().try_pop();
                 if let Some(sample) = s {
@@ -35,14 +34,15 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                 for (i, &mag) in magnitudes.iter().enumerate() {
                     if i < l{
                         let curr = app_guard.spectrum_peaks[i];
-                        let target = mag * app_guard.amp;
-                        let new_val = if target > curr {
-                            curr * (1.0 - r_s) + target * r_s
+                        let tgt = mag * app_guard.amp;
+                        let new_val = if tgt > curr {
+                            curr + (tgt - curr) * r_s
                         } else {
-                            curr * (1.0 - f_s) + target * f_s 
+                            curr - (curr - tgt) * f_s
                         };
-                        app_guard.spectrum_peaks[i] = new_val.max(0.0);
-                        app_guard.spectrum[i] = new_val.max(0.0);
+                        let smoothed = app_guard.spectrum[i] * 0.5 + new_val.max(0.0) * 0.5;
+                        app_guard.spectrum_peaks[i] = if (smoothed-curr).abs() > 0.05 {smoothed} else{curr};
+                        app_guard.spectrum[i] =  if (smoothed-curr).abs() > 0.05 {smoothed} else{curr};
                     }
                 }
             }
@@ -55,7 +55,6 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
         let (mut lframe,mut rframe) = (Vec::<f32>::with_capacity(FRAME_SIZE),Vec::<f32>::with_capacity(FRAME_SIZE));    
 
         loop {
-            // Process multiple samples per iteration for better throughput
             for _ in 0..batch_sz {
                 let (lsample, rsample) = (lcons.lock().unwrap().try_pop(),rcons.lock().unwrap().try_pop());
                 if let (Some(lsample), Some(rsample)) = (lsample, rsample) {
@@ -92,33 +91,38 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                         let l_curr = app_guard.left_spectrum_peaks[i];
                         let l_tgt = l_mag_val * app_guard.amp;
                         let l_new = if l_tgt > l_curr {
-                            (1.0 - r_s) * l_curr + l_tgt * r_s 
+                            l_curr + (l_tgt - l_curr) * r_s
                         } else {
-                            (1.0 - f_s) * l_curr + l_tgt * f_s 
+                            l_curr - (l_curr - l_tgt) * f_s
                         };
-                        app_guard.left_spectrum_peaks[i] = l_new.max(0.0);
-                        app_guard.left_spectrum[i] = l_new.max(0.0);
-
+                        let l_smoothed = app_guard.left_spectrum[i] * 0.5 + l_new.max(0.0) * 0.5;
+                        app_guard.left_spectrum_peaks[i] = if (l_smoothed-l_curr).abs() > 0.05 {l_smoothed} else{l_curr};
+                        app_guard.left_spectrum[i] = if (l_smoothed-l_curr).abs() > 0.05 {l_smoothed} else{l_curr};
+                        
                         let r_curr = app_guard.right_spectrum_peaks[i];
                         let r_tgt = r_mag_val * app_guard.amp;
                         let r_new = if r_tgt > r_curr {
-                            (1.0 - r_s) * r_curr + r_tgt * r_s 
+                            r_curr + (r_tgt - r_curr) * r_s
                         } else {
-                            (1.0 - f_s) * r_curr + r_tgt * f_s 
+                            r_curr - (r_curr - r_tgt) * f_s
                         };
-                        app_guard.right_spectrum_peaks[i] = r_new.max(0.0);
-                        app_guard.right_spectrum[i] = r_new.max(0.0);
+                        let r_smoothed = app_guard.right_spectrum[i] * 0.5 + r_new.max(0.0) * 0.5;
+
+                        app_guard.right_spectrum_peaks[i] = if (r_smoothed-r_curr).abs() > 0.05 {r_smoothed} else{r_curr};
+                        app_guard.right_spectrum[i] = if (r_smoothed-r_curr).abs() > 0.05 {r_smoothed} else{r_curr};
                         
                         if i < l{
                             let m_curr = app_guard.spectrum_peaks[i];
                             let m_tgt = (l_mag_val + r_mag_val) / 2.0 * app_guard.amp;
                             let m_new = if m_tgt > m_curr {
-                                (1.0 - r_s) * m_curr + m_tgt * r_s 
+                                m_curr + (m_tgt - m_curr) * r_s
                             } else {
-                                (1.0 - f_s) * m_curr + m_tgt * f_s 
+                                m_curr - (m_curr - m_tgt) * f_s
                             };
-                            app_guard.spectrum_peaks[i] = m_new.max(0.0);
-                            app_guard.spectrum[i] = m_new.max(0.0);
+                            let m_smoothed = app_guard.spectrum[i] * 0.5 + m_new.max(0.0) * 0.5;
+                            
+                            app_guard.spectrum_peaks[i] = if (m_smoothed-m_curr).abs() > 0.05 {m_smoothed} else{m_curr};
+                            app_guard.spectrum[i] =  if (m_smoothed-m_curr).abs() > 0.05 {m_smoothed} else{m_curr};
                         }
                     }
                 }

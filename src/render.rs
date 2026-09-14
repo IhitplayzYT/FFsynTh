@@ -2,7 +2,7 @@ pub mod render{
     use std::{error::Error, io::Stdout, ops::{Add, Sub}, sync::{Arc, Mutex}};
 
 use crossterm::{event::{DisableMouseCapture, KeyCode, KeyEvent}, execute, terminal::{LeaveAlternateScreen, disable_raw_mode}};
-use ratatui::{Frame, Terminal, backend::CrosstermBackend, style::Style};
+use ratatui::{Frame, Terminal, backend::CrosstermBackend, layout::{Constraint, Direction, Layout}, style::Style};
 use cpal::{Host, HostId};
 use crossterm::event::{self, Event};
 use ratatui::{widgets::{Block, Borders, List, ListItem}};
@@ -299,14 +299,27 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
     }
 
     fn render_spectrum(f: &mut Frame, app: &App) {
+        
         let size = f.area();
-        let bar_width = size.width as usize / app.bars;
-        let max_height = size.height as usize - 2;
+        
+        if app.is_stereo {
+            // Split screen for left and right channels
+            let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(size);            
+            render_channel_spectrum(f, chunks[0], &app.left_spectrum, "Left Channel", app);
+            render_channel_spectrum(f, chunks[1], &app.right_spectrum, "Right Channel", app);
+        } else {
+            render_channel_spectrum(f, size, &app.spectrum, "Audio Spectrum", app);
+        }
+    }
+    
+    fn render_channel_spectrum(f: &mut Frame, area: ratatui::layout::Rect, spectrum: &[f32], title: &str, app: &App) {
+        let bar_width = area.width as usize / app.bars;
+        let max_height = area.height as usize - 2;
         let mut lines = Vec::new();
         
         for y in (0..max_height).rev() {
             let mut spans = Vec::new();
-            for (bar_idx, &magnitude) in app.spectrum.iter().enumerate() {
+            for (bar_idx, &magnitude) in spectrum.iter().enumerate() {
                 let normalized_height = ((magnitude + (magnitude * app.amp)) as usize).min(max_height);
                 let color = app.colors.get(bar_idx).copied().unwrap_or_default();
                 
@@ -319,7 +332,7 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
             }
             lines.push(Line::from(spans));
         }
-    let paragraph = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(format!("Controls:{}   Amp({})  Bars({})  FallSpeed({})  RiseSpeed({})",app.curr_controls.name(),app.amp,app.bars,app.fall_speed,app.rise_speed))).wrap(Wrap { trim: false });
-    f.render_widget(paragraph, size);
+        let paragraph = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(format!("{} | Controls:{} Amp({}) Bars({}) FallSpeed({}) RiseSpeed({})",title,app.curr_controls.name(),app.amp,app.bars,app.fall_speed,app.rise_speed))).wrap(Wrap { trim: false });
+        f.render_widget(paragraph, area);
     }
 }
