@@ -59,8 +59,8 @@ fn main() -> Result<(), Box<dyn Error>>{
     }
 
     match clargs.colors.len(){
-        0 => {clargs.colors.append(&mut vec![MyColor::new(255, 0, 0, 255),MyColor::new(0, 0, 255, 255)]);},
-        1 => {clargs.colors.push(MyColor::new(255, 0, 0, 0));},
+        0 => {clargs.colors.append(&mut vec![MyColor::new(255, 0, 0, 125),MyColor::new(0, 0, 255, 125)]);},
+        1 => {clargs.colors.push(MyColor::new(255, 0, 0, 125));},
         _ => {}
     }    
     if clargs.random{
@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>>{
         clargs.colors = expand_to_len(clargs.colors, clargs.bars);
     }
 
-    let mut app = App::new(clargs.bars, clargs.amp as f32, clargs.colors, clargs.stereo,clargs.random);
+    let mut app = App::new(clargs.bars, clargs.amp as f32, clargs.colors, clargs.stereo,clargs.random,clargs.filter);
     
     enable_raw_mode()?;
     let mut stdout = io::stdout();

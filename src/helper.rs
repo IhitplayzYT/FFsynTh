@@ -47,7 +47,8 @@ NOTES:
         pub stereo: bool,
         pub to_invert: bool,
         pub batch_sz: usize,
-        pub random:bool 
+        pub random:bool,
+        pub filter: f32, 
     }
 
 
@@ -59,7 +60,7 @@ NOTES:
 
     impl CLI{
         pub fn new() -> Self{
-            Self {dbg: false,bars: 5,src:None,amp:0.4,colors:vec![],stereo: true,to_invert:false,batch_sz:64,random:true}
+            Self {dbg: false,bars: 5,src:None,amp:0.4,colors:vec![],stereo: true,to_invert:false,batch_sz:64,random:true,filter:0.05}
         }
 
         pub fn Parse_Args(&mut self){
@@ -88,6 +89,9 @@ NOTES:
                     self.random = false;
                 } else if i == "--invert" || i == "-i"{
                     self.to_invert = true;
+                } else if i.starts_with("--filter=") | i.starts_with("-f="){
+                    self.filter = i[i.find("=").unwrap()+1..].parse().expect("Filter is value between 0.0 and 1.0");
+                    self.filter = self.filter.clamp(0.0, 1.0);
                 } else if i.starts_with("--batch=") || i.starts_with("--batch_sz") || i.starts_with("-b="){
                     self.batch_sz = i[i.find("=").unwrap()+1..].parse().expect("Batch size is supposed to be unsighned int");
                 } else{

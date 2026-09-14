@@ -64,7 +64,8 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
         pub fall_speed: f32,
         pub rise_speed: f32,
         pub rand: bool,
-        pub curr_controls: ControlSelection
+        pub curr_controls: ControlSelection,
+        pub filter: f32,
     }
 
     pub struct SelectionState {
@@ -188,8 +189,8 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
     }
 
     impl App{
-        pub fn new(bars: usize,amp:f32,colors: Vec<MyColor>,is_stereo: bool,rand:bool) -> Self{
-            Self { bars, amp, colors, is_stereo,spectrum: vec![0.0; bars],left_spectrum: vec![0.0; bars],right_spectrum: vec![0.0; bars],spectrum_peaks: vec![0.0; bars],left_spectrum_peaks: vec![0.0; bars],right_spectrum_peaks: vec![0.0; bars],fall_speed: 0.15,rise_speed: 0.3,rand,curr_controls:ControlSelection::default()}
+        pub fn new(bars: usize,amp:f32,colors: Vec<MyColor>,is_stereo: bool,rand:bool,filter:f32) -> Self{
+            Self { bars, amp, colors, is_stereo,spectrum: vec![0.0; bars],left_spectrum: vec![0.0; bars],right_spectrum: vec![0.0; bars],spectrum_peaks: vec![0.0; bars],left_spectrum_peaks: vec![0.0; bars],right_spectrum_peaks: vec![0.0; bars],fall_speed: 0.15,rise_speed: 0.3,rand,curr_controls:ControlSelection::default(),filter}
         }
     }
 
@@ -305,33 +306,54 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
         if app.is_stereo {
             // Split screen for left and right channels
             let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(size);            
-            render_channel_spectrum(f, chunks[0], &app.left_spectrum, "Left Channel", app);
-            render_channel_spectrum(f, chunks[1], &app.right_spectrum, "Right Channel", app);
+            render_channel_spectrum(f, chunks[0], &app.left_spectrum, "Left Channel", app, true);
+            render_channel_spectrum(f, chunks[1], &app.right_spectrum, "Right Channel", app, false);
         } else {
-            render_channel_spectrum(f, size, &app.spectrum, "Audio Spectrum", app);
+            render_channel_spectrum(f, size, &app.spectrum, "Audio Spectrum", app, false);
         }
     }
     
-    fn render_channel_spectrum(f: &mut Frame, area: ratatui::layout::Rect, spectrum: &[f32], title: &str, app: &App) {
-        let bar_width = area.width as usize / app.bars;
-        let max_height = area.height as usize - 2;
+    fn render_channel_spectrum(f: &mut Frame, area: ratatui::layout::Rect, spectrum: &[f32], title: &str, app: &App, is_left_channel: bool) {
+        let max_width = area.width as usize - 2;
+        let available_height = area.height as usize - 2;
+        let bar_height = (available_height / app.bars).max(1);
         let mut lines = Vec::new();
         
-        for y in (0..max_height).rev() {
+        // Render horizontal bars
+        for bar_idx in 0..app.bars {
+            let magnitude = spectrum.get(bar_idx).copied().unwrap_or(0.0);
+            let normalized_width = ((magnitude + (magnitude * app.amp)) as usize).min(max_width);
+            let color = app.colors.get(bar_idx).copied().unwrap_or_default();
+            
+            // Apply alpha by blending with black background
+            let alpha_factor = color.a as f32 / 255.0;
+            let r = (color.r as f32 * alpha_factor) as u8;
+            let g = (color.g as f32 * alpha_factor) as u8;
+            let b = (color.b as f32 * alpha_factor) as u8;
+            
+            let bar_char = "█";
+            let bar_str = bar_char.repeat(normalized_width.max(1));
+            
             let mut spans = Vec::new();
-            for (bar_idx, &magnitude) in spectrum.iter().enumerate() {
-                let normalized_height = ((magnitude + (magnitude * app.amp)) as usize).min(max_height);
-                let color = app.colors.get(bar_idx).copied().unwrap_or_default();
-                
-                if y < normalized_height {
-                    let bar_char = if bar_width >= 2 { "█" } else { "│" };
-                    spans.push(Span::styled(bar_char.repeat(bar_width.max(1)),Style::default().fg(Color::Rgb(color.r, color.g, color.b))));
-                } else {
-                    spans.push(Span::styled(" ".repeat(bar_width.max(1)), Style::default()));
-                }
+            
+            if is_left_channel {
+                // Left channel: bars start from right (middle) and go to left
+                let padding = " ".repeat((max_width - normalized_width).max(0));
+                spans.push(Span::styled(padding, Style::default()));
+                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(r, g, b))));
+            } else {
+                // Right channel: bars start from left (middle) and go to right
+                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(r, g, b))));
+                let padding = " ".repeat((max_width - normalized_width).max(0));
+                spans.push(Span::styled(padding, Style::default()));
             }
-            lines.push(Line::from(spans));
+            
+            // Render each bar with multiple lines for thickness
+            for _ in 0..bar_height {
+                lines.push(Line::from(spans.clone()));
+            }
         }
+        
         let paragraph = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(format!("{} | Controls:{} Amp({}) Bars({}) FallSpeed({}) RiseSpeed({})",title,app.curr_controls.name(),app.amp,app.bars,app.fall_speed,app.rise_speed))).wrap(Wrap { trim: false });
         f.render_widget(paragraph, area);
     }

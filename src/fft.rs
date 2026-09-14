@@ -31,6 +31,7 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                 let l = app_guard.spectrum.len();
                 let r_s = app_guard.rise_speed;
                 let f_s = app_guard.fall_speed;
+                let filter = app_guard.filter;
                 for (i, &mag) in magnitudes.iter().enumerate() {
                     if i < l{
                         let curr = app_guard.spectrum_peaks[i];
@@ -41,8 +42,8 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                             curr - (curr - tgt) * f_s
                         };
                         let smoothed = app_guard.spectrum[i] * 0.5 + new_val.max(0.0) * 0.5;
-                        app_guard.spectrum_peaks[i] = if (smoothed-curr).abs() > 0.05 {smoothed} else{curr};
-                        app_guard.spectrum[i] =  if (smoothed-curr).abs() > 0.05 {smoothed} else{curr};
+                        app_guard.spectrum_peaks[i] = if (smoothed-curr).abs() > filter {smoothed} else{curr};
+                        app_guard.spectrum[i] =  if (smoothed-curr).abs() > filter {smoothed} else{curr};
                     }
                 }
             }
@@ -85,6 +86,8 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                 let (ll,rl) = (app_guard.left_spectrum.len(),app_guard.right_spectrum.len());
                 let r_s = app_guard.rise_speed;
                 let f_s = app_guard.fall_speed;
+                let filter = app_guard.filter;
+
                 for (i, (&l_mag_val, &r_mag_val)) in l_mag.iter().zip(r_mag.iter()).enumerate() {
                     if i < ll  && i < rl {
 
@@ -96,8 +99,8 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                             l_curr - (l_curr - l_tgt) * f_s
                         };
                         let l_smoothed = app_guard.left_spectrum[i] * 0.5 + l_new.max(0.0) * 0.5;
-                        app_guard.left_spectrum_peaks[i] = if (l_smoothed-l_curr).abs() > 0.05 {l_smoothed} else{l_curr};
-                        app_guard.left_spectrum[i] = if (l_smoothed-l_curr).abs() > 0.05 {l_smoothed} else{l_curr};
+                        app_guard.left_spectrum_peaks[i] = if (l_smoothed-l_curr).abs() > filter {l_smoothed} else{l_curr};
+                        app_guard.left_spectrum[i] = if (l_smoothed-l_curr).abs() > filter {l_smoothed} else{l_curr};
                         
                         let r_curr = app_guard.right_spectrum_peaks[i];
                         let r_tgt = r_mag_val * app_guard.amp;
@@ -108,8 +111,8 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                         };
                         let r_smoothed = app_guard.right_spectrum[i] * 0.5 + r_new.max(0.0) * 0.5;
 
-                        app_guard.right_spectrum_peaks[i] = if (r_smoothed-r_curr).abs() > 0.05 {r_smoothed} else{r_curr};
-                        app_guard.right_spectrum[i] = if (r_smoothed-r_curr).abs() > 0.05 {r_smoothed} else{r_curr};
+                        app_guard.right_spectrum_peaks[i] = if (r_smoothed-r_curr).abs() > filter {r_smoothed} else{r_curr};
+                        app_guard.right_spectrum[i] = if (r_smoothed-r_curr).abs() > filter {r_smoothed} else{r_curr};
                         
                         if i < l{
                             let m_curr = app_guard.spectrum_peaks[i];
@@ -121,8 +124,8 @@ use rustfft::{Fft, FftPlanner, num_complex::Complex};
                             };
                             let m_smoothed = app_guard.spectrum[i] * 0.5 + m_new.max(0.0) * 0.5;
                             
-                            app_guard.spectrum_peaks[i] = if (m_smoothed-m_curr).abs() > 0.05 {m_smoothed} else{m_curr};
-                            app_guard.spectrum[i] =  if (m_smoothed-m_curr).abs() > 0.05 {m_smoothed} else{m_curr};
+                            app_guard.spectrum_peaks[i] = if (m_smoothed-m_curr).abs() > filter {m_smoothed} else{m_curr};
+                            app_guard.spectrum[i] =  if (m_smoothed-m_curr).abs() > filter {m_smoothed} else{m_curr};
                         }
                     }
                 }
