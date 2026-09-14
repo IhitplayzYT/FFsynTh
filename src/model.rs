@@ -1,8 +1,6 @@
 pub mod Model{
     use ringbuf::traits::Consumer;
 
-use crate::model::Model::CaptureSource::NamedDevice;
-
 
     #[derive(Debug,Clone, Copy)]
   pub struct MyColor{

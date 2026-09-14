@@ -16,11 +16,12 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
     #[derive(Debug,PartialEq, Eq,Clone, Copy)]
     pub enum ControlSelection{
         Amp_and_Bars,
-        Fall_and_Rise
+        Fall_and_Rise,
+        Channel
     }
 
     impl ControlSelection{
-        pub const ALL: [ControlSelection;2] = [ControlSelection::Amp_and_Bars,ControlSelection::Fall_and_Rise];
+        pub const ALL: [ControlSelection;3] = [ControlSelection::Amp_and_Bars,ControlSelection::Fall_and_Rise,ControlSelection::Channel];
 
         pub fn next(&self) -> ControlSelection{
             let idx = Self::ALL.iter().position(|x| x == self).unwrap();
@@ -31,6 +32,7 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
             match self{
                 ControlSelection::Amp_and_Bars => "Amp=⇅,Bars=⇄",
                 ControlSelection::Fall_and_Rise => "RiseSpeed=⇅,FallSpeed=⇄",
+                ControlSelection::Channel => "Channel=⇄",
             }
         }
 
@@ -45,10 +47,6 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
             Self::Amp_and_Bars
         }
     }
-
-
-
-
 
     pub struct App{
         pub bars: usize,   
@@ -245,9 +243,13 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
                         },
                         ControlSelection::Fall_and_Rise => {
                             app.fall_speed = app.fall_speed.sub(0.1).clamp(0.0, 1.0);
-                        }
+                        },
+                        _ => {},
                     }
-           },
+            },
+            KeyCode::Char('t') => {
+                app.is_stereo = if app.is_stereo {false} else{true}
+            },
             KeyCode::Right => {
                     match app.curr_controls{
                         ControlSelection::Amp_and_Bars => {
@@ -265,7 +267,8 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
                         },
                         ControlSelection::Fall_and_Rise => {
                             app.fall_speed = app.fall_speed.add(0.1).clamp(0.0, 1.0);
-                        }
+                        },
+                        _ => {}
                     }
 
             },
@@ -282,7 +285,8 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
                     },
                     ControlSelection::Fall_and_Rise => {
                         app.rise_speed = app.rise_speed.sub(0.1).clamp(0.0,1.0);
-                    }
+                    },
+                    _ => {},
                 }
             },
             KeyCode::Up => {
@@ -293,6 +297,7 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
                     ControlSelection::Fall_and_Rise => {
                         app.rise_speed = app.rise_speed.add(0.1).clamp(0.0,1.0);
                     },
+                    _ => {},
                 }
             }
             _ => {} 
@@ -304,7 +309,6 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
         let size = f.area();
         
         if app.is_stereo {
-            // Split screen for left and right channels
             let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(size);            
             render_channel_spectrum(f, chunks[0], &app.left_spectrum, "Left Channel", app, true);
             render_channel_spectrum(f, chunks[1], &app.right_spectrum, "Right Channel", app, false);
@@ -319,17 +323,10 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
         let bar_height = (available_height / app.bars).max(1);
         let mut lines = Vec::new();
         
-        // Render horizontal bars
         for bar_idx in 0..app.bars {
             let magnitude = spectrum.get(bar_idx).copied().unwrap_or(0.0);
             let normalized_width = ((magnitude + (magnitude * app.amp)) as usize).min(max_width);
             let color = app.colors.get(bar_idx).copied().unwrap_or_default();
-            
-            // Apply alpha by blending with black background
-            let alpha_factor = color.a as f32 / 255.0;
-            let r = (color.r as f32 * alpha_factor) as u8;
-            let g = (color.g as f32 * alpha_factor) as u8;
-            let b = (color.b as f32 * alpha_factor) as u8;
             
             let bar_char = "█";
             let bar_str = bar_char.repeat(normalized_width.max(1));
@@ -337,24 +334,21 @@ use ratatui::{widgets::{Paragraph, Wrap}, style::Color, text::{Line, Span}};
             let mut spans = Vec::new();
             
             if is_left_channel {
-                // Left channel: bars start from right (middle) and go to left
                 let padding = " ".repeat((max_width - normalized_width).max(0));
                 spans.push(Span::styled(padding, Style::default()));
-                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(r, g, b))));
+                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(color.r, color.g, color.b))));
             } else {
-                // Right channel: bars start from left (middle) and go to right
-                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(r, g, b))));
+                spans.push(Span::styled(bar_str, Style::default().fg(Color::Rgb(color.r, color.g, color.b))));
                 let padding = " ".repeat((max_width - normalized_width).max(0));
                 spans.push(Span::styled(padding, Style::default()));
             }
             
-            // Render each bar with multiple lines for thickness
             for _ in 0..bar_height {
                 lines.push(Line::from(spans.clone()));
             }
         }
         
-        let paragraph = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(format!("{} | Controls:{} Amp({}) Bars({}) FallSpeed({}) RiseSpeed({})",title,app.curr_controls.name(),app.amp,app.bars,app.fall_speed,app.rise_speed))).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(format!("{} | Controls:{} Amp({:.2}) Bars({}) ",title,app.curr_controls.name(),app.amp,app.bars)).title_bottom(format!("FallSpeed({:.2}) RiseSpeed({:.2})",app.fall_speed,app.rise_speed))).wrap(Wrap { trim: false });
         f.render_widget(paragraph, area);
     }
 }

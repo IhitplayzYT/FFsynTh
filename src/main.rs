@@ -43,7 +43,6 @@ fn restore_terminal() -> io::Result<()> {
     Ok(())
 }
 fn main() -> Result<(), Box<dyn Error>>{
-    // Handle CTRL+C
     add_sigint_handler();
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
@@ -129,7 +128,6 @@ fn main() -> Result<(), Box<dyn Error>>{
 
     if let Some(strm) = stream{
         let app = Arc::new(Mutex::new(app));
-
         let app_clone = app.clone();
         if clargs.stereo{
             let lcons_clone = lcons.clone();
